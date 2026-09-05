@@ -1,0 +1,147 @@
+<title>At Large</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,700;0,6..96,900;1,6..96,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Light = newsprint. Dark = microfilm negative, which is how these scans were actually made. */
+:root{
+  --ground:#E5E0D3; --panel:#F1EEE4; --panel2:#DAD4C4; --sunk:#D5CFBD;
+  --ink:#191713; --ink2:#4E4A40; --ink3:#7E786A; --ink4:#A39C8B;
+  --rule:#C2BAA6; --rule2:#D6CFBD;
+  --stamp:#9C2B1E; --keep:#3E6B44; --drop:#8A5A16;
+  --hl:rgba(156,43,30,.20);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --ground:#0D0E0C; --panel:#151714; --panel2:#1E211D; --sunk:#080907;
+  --ink:#DEE2D6; --ink2:#A5A99B; --ink3:#767A6C; --ink4:#585C4F;
+  --rule:#2B2F29; --rule2:#22251F;
+  --stamp:#E8705C; --keep:#7FB287; --drop:#D2A052;
+  --hl:rgba(232,112,92,.22);
+}}
+:root[data-theme="dark"]{
+  --ground:#0D0E0C; --panel:#151714; --panel2:#1E211D; --sunk:#080907;
+  --ink:#DEE2D6; --ink2:#A5A99B; --ink3:#767A6C; --ink4:#585C4F;
+  --rule:#2B2F29; --rule2:#22251F;
+  --stamp:#E8705C; --keep:#7FB287; --drop:#D2A052;
+  --hl:rgba(232,112,92,.22);
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);
+  font-family:"Source Serif 4",Georgia,serif;font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+h1,h2,h3{margin:0;text-wrap:balance}
+a{color:var(--stamp)}
+:focus-visible{outline:2px solid var(--stamp);outline-offset:2px}
+.app{max-width:1780px;margin:0 auto;padding:0 22px 80px}
+.disp{font-family:"Bodoni Moda",Didot,Georgia,serif}
+.tt{font-family:"Courier Prime",ui-monospace,Menlo,monospace}
+.lbl{font-family:"Source Serif 4",serif;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3)}
+button,select,input{font-family:inherit;font-size:14px;color:var(--ink)}
+button{background:var(--panel2);border:1px solid var(--rule);border-radius:2px;padding:6px 10px;cursor:pointer}
+button:hover{border-color:var(--ink3)}
+button[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+
+/* ── nameplate ─────────────────────────────────── */
+header.plate{border-bottom:3px double var(--ink);padding:30px 0 0;margin-bottom:0}
+.rulerow{border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);padding:5px 0;
+  display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.rulerow span{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink2)}
+h1.t{font-family:"Bodoni Moda",Didot,serif;font-weight:900;font-size:clamp(60px,12vw,150px);
+  line-height:.92;letter-spacing:-.015em;text-align:center;padding:16px 0 10px}
+.sub{text-align:center;font-style:italic;font-size:clamp(16px,1.7vw,21px);color:var(--ink2);
+  max-width:74ch;margin:0 auto 20px;line-height:1.45}
+.plate .tools{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding-bottom:18px}
+.seg3{display:inline-flex;border:1px solid var(--rule);border-radius:2px;overflow:hidden}
+.seg3 button{border:0;border-radius:0;background:var(--panel);padding:6px 11px;
+  font:400 11px/1 "Source Serif 4",serif;letter-spacing:.16em;text-transform:uppercase}
+.seg3 button+button{border-left:1px solid var(--rule)}
+
+/* ── prisma tally ──────────────────────────────── */
+.tally{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--rule);
+  border-bottom:1px solid var(--rule);margin-bottom:24px}
+@media(min-width:820px){.tally{grid-template-columns:repeat(4,1fr)}}
+.tally>div{background:var(--ground);padding:14px 16px 16px}
+.tally .v{font-family:"Bodoni Moda",serif;font-weight:700;font-size:31px;line-height:1.05;letter-spacing:-.01em}
+.tally .v.keep{color:var(--keep)} .tally .v.drop{color:var(--drop)} .tally .v.hot{color:var(--stamp)}
+.tally .k{font-size:12.5px;color:var(--ink2);margin-top:4px;line-height:1.4;max-width:30ch}
+
+/* ── bench ─────────────────────────────────────── */
+.bench{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);grid-template-columns:1fr}
+@media(min-width:920px){.bench{grid-template-columns:264px minmax(0,1fr)}}
+@media(min-width:1340px){.bench{grid-template-columns:264px minmax(0,1fr) 372px}}
+.pane{background:var(--panel);padding:15px 17px;min-width:0}
+.pane h3{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink3);margin-bottom:9px;font-weight:400}
+.pane h3+h3{margin-top:20px}
+.srch{width:100%;padding:8px 10px;background:var(--sunk);border:1px solid var(--rule);border-radius:2px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chips button{font-size:12px;padding:4px 8px}
+.slider{width:100%;accent-color:var(--stamp);margin:4px 0 2px}
+.sliderval{font-size:12.5px;color:var(--ink2);display:flex;justify-content:space-between}
+
+/* ── the wall ──────────────────────────────────── */
+.wall{background:var(--panel);padding:0;max-height:1180px;overflow-y:auto}
+.clip{border-bottom:1px solid var(--rule2);padding:13px 17px;cursor:pointer;position:relative}
+.clip:hover{background:var(--panel2)}
+.clip[aria-selected="true"]{background:var(--panel2);box-shadow:inset 3px 0 0 var(--stamp)}
+.clip.excluded{opacity:.42}
+.cliphead{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap}
+.clipdate{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);white-space:nowrap}
+.clippaper{font-family:"Bodoni Moda",serif;font-weight:700;font-size:16px;line-height:1.2;letter-spacing:-.005em}
+.clipsnip{font-family:"Courier Prime",monospace;font-size:12.5px;line-height:1.5;color:var(--ink2);
+  margin-top:6px;max-height:3.1em;overflow:hidden}
+.clipsnip mark{background:var(--hl);color:inherit;padding:0 1px}
+.clipmeta{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px;align-items:center}
+.badge{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;padding:2px 6px;
+  border:1px solid var(--rule);border-radius:2px;color:var(--ink3)}
+.badge.animal{border-color:var(--stamp);color:var(--stamp)}
+.badge.conf{font-family:"Courier Prime",monospace;letter-spacing:0}
+.mark{margin-left:auto;display:flex;gap:5px}
+.mark button{font-size:10.5px;padding:2px 7px;letter-spacing:.1em;text-transform:uppercase}
+.mark button.on-keep{background:var(--keep);border-color:var(--keep);color:var(--panel)}
+.mark button.on-drop{background:var(--drop);border-color:var(--drop);color:var(--panel)}
+
+/* ── detail ────────────────────────────────────── */
+.dpaper{font-family:"Bodoni Moda",serif;font-weight:700;font-size:23px;line-height:1.15}
+.dline{font-size:12.5px;color:var(--ink2);margin-top:5px}
+.docr{font-family:"Courier Prime",monospace;font-size:12.5px;line-height:1.62;color:var(--ink2);
+  background:var(--sunk);border:1px solid var(--rule2);border-radius:2px;padding:11px 12px;margin-top:12px;
+  max-height:340px;overflow-y:auto;white-space:pre-wrap}
+.docr mark{background:var(--hl);color:var(--ink)}
+.empty{color:var(--ink3);font-size:13.5px}
+
+/* ── charts / sections ─────────────────────────── */
+section.blk{margin-top:44px}
+h2.sec{font-family:"Bodoni Moda",serif;font-weight:700;font-size:clamp(26px,3vw,38px);line-height:1.1}
+.sublede{color:var(--ink2);font-size:15.5px;max-width:70ch;margin-top:8px}
+.two{display:grid;gap:22px;grid-template-columns:1fr;margin-top:18px}
+@media(min-width:1000px){.two{grid-template-columns:minmax(0,1fr) 400px;gap:34px}}
+canvas.chart{display:block;width:100%;height:250px;background:var(--panel);border:1px solid var(--rule);border-radius:2px}
+.barlist{display:grid;gap:3px;margin-top:6px}
+.bar{position:relative;padding:4px 8px;font-size:13px;cursor:pointer;border:0;background:none;text-align:left;width:100%;border-radius:2px}
+.bar .bg{position:absolute;left:0;top:2px;bottom:2px;background:var(--panel2);border-radius:2px}
+.bar[aria-pressed="true"] .bg{background:var(--stamp);opacity:.3}
+.bar .in{position:relative;display:flex;justify-content:space-between;gap:10px}
+.bar .n{font-family:"Courier Prime",monospace;font-size:12px;color:var(--ink3)}
+.finding{border-left:3px solid var(--stamp);padding-left:15px}
+.finding .hl{font-family:"Bodoni Moda",serif;font-weight:700;font-size:24px;line-height:1.2}
+.finding p{margin:8px 0 0;color:var(--ink2);font-size:14.5px}
+.finding b{color:var(--ink)}
+
+details.methods{border:1px solid var(--rule);border-radius:2px;background:var(--panel);margin-top:16px}
+details.methods>summary{cursor:pointer;padding:14px 17px;font-size:11.5px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--ink2);list-style:none}
+details.methods>summary::-webkit-details-marker{display:none}
+details.methods>summary::before{content:"+ ";color:var(--stamp)}
+details.methods[open]>summary::before{content:"\2212 ";}
+.mbody{padding:0 17px 22px;font-size:15px;line-height:1.62;color:var(--ink2);
+  display:grid;gap:6px 40px;grid-template-columns:1fr;align-items:start}
+@media(min-width:980px){.mbody{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1500px){.mbody{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.mblk{min-width:0;max-width:62ch}
+.mbody h3{font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);margin:14px 0 7px}
+.mbody p{margin:0 0 10px}
+.mbody ul{margin:0 0 10px;padding-left:19px}.mbody li{margin-bottom:5px}
+.mbody code{font-family:"Courier Prime",monospace;font-size:12.5px;background:var(--panel2);padding:1px 5px;border-radius:2px;color:var(--ink);overflow-wrap:anywhere}
+footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);
+  font-size:12px;color:var(--ink3);line-height:1.8;letter-spacing:.04em}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>

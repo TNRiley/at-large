@@ -1,0 +1,292 @@
+<script>
+"use strict";
+const D = __PAYLOAD__;
+const R = D.recs, N = R.length;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt = n => n.toLocaleString("en-US");
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem("atlarge." + k); return v === null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem("atlarge." + k, JSON.stringify(v)); }catch(e){} }
+};
+const titleCase = s => (s || "").replace(/\b[a-z]/g, c => c.toUpperCase());
+
+/* ── theme ───────────────────────────────────────── */
+function setTheme(t){
+  store.set("theme", t);
+  if (t === "auto") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", t);
+  [...$("themeSeg").children].forEach(b => b.setAttribute("aria-pressed", b.dataset.t === t));
+  drawTimeline();
+}
+[...$("themeSeg").children].forEach(b => b.onclick = () => setTheme(b.dataset.t));
+
+/* ── screening decisions live only in this browser ─ */
+let screened = store.get("screened", {});
+const saveScreen = () => store.set("screened", screened);
+
+/* ── filter state ────────────────────────────────── */
+const F = { q: "", conf: 40, animal: new Set(), phrase: new Set(), decade: new Set(), state: new Set(), screen: new Set() };
+let view = [];
+
+function pass(i){
+  const r = R[i];
+  if (r.cf < F.conf) return false;
+  if (F.animal.size && !F.animal.has(r.an)) return false;
+  if (F.phrase.size && !F.phrase.has(r.ph)) return false;
+  if (F.state.size && !F.state.has(r.st)) return false;
+  if (F.decade.size && !F.decade.has(Math.floor(+r.d.slice(0,4) / 10) * 10)) return false;
+  if (F.screen.size){
+    const s = screened[r.u] || "none";
+    if (!F.screen.has(s)) return false;
+  }
+  if (F.q){
+    const q = F.q.toLowerCase();
+    if (!(r.tx.toLowerCase().includes(q) || (D.papers[r.pa] || "").toLowerCase().includes(q)
+          || (r.ct || "").toLowerCase().includes(q))) return false;
+  }
+  return true;
+}
+function applyFilters(){
+  view = [];
+  for (let i = 0; i < N; i++) if (pass(i)) view.push(i);
+}
+
+/* ── the tally, in the shape of a screening flow ─── */
+function renderTally(){
+  let kept = 0, dropped = 0;
+  for (const i of view){ const s = screened[R[i].u]; if (s === "keep") kept++; else if (s === "drop") dropped++; }
+  const cells = [
+    [fmt(N), "newspaper pages returned by " + D.phrases.length + " full-text searches, de-duplicated", ""],
+    [fmt(view.length), "left after the phrase filter and everything else set above", "hot"],
+    [fmt(kept), "you have marked as a genuine escape", "keep"],
+    [fmt(dropped), "you have thrown out", "drop"]
+  ];
+  $("tally").innerHTML = cells.map(([v,k,c]) => `<div><div class="v ${c}">${v}</div><div class="k">${k}</div></div>`).join("");
+  $("confn").textContent = fmt(view.length) + " clippings";
+}
+
+/* ── chips ───────────────────────────────────────── */
+function chipHost(host, items, set, label){
+  $(host).innerHTML = "";
+  items.forEach(([val, txt, n]) => {
+    const b = document.createElement("button");
+    b.textContent = txt + (n != null ? ` ${n}` : "");
+    b.setAttribute("aria-pressed", set.has(val));
+    b.onclick = () => { set.has(val) ? set.delete(val) : set.add(val); refresh(); };
+    $(host).appendChild(b);
+  });
+}
+function countBy(keyFn){
+  const c = new Map();
+  for (let i = 0; i < N; i++){ if (R[i].cf < F.conf) continue; const k = keyFn(R[i]); c.set(k, (c.get(k) || 0) + 1); }
+  return c;
+}
+
+/* ── the wall ────────────────────────────────────── */
+const WALL_CAP = 260;
+function renderWall(){
+  const rows = view.slice(0, WALL_CAP).map(i => {
+    const r = R[i], s = screened[r.u] || "none";
+    return `<article class="clip${s === "drop" ? " excluded" : ""}" data-i="${i}" aria-selected="${i === picked}">
+      <div class="cliphead">
+        <span class="clippaper">${esc(titleCase(D.papers[r.pa] || "Unidentified paper"))}</span>
+        <span class="clipdate">${esc(r.d)}</span>
+      </div>
+      <div class="clipsnip">${r.tx.slice(0,200)}&hellip;</div>
+      <div class="clipmeta">
+        ${r.an ? `<span class="badge animal">${esc(D.animals[r.an])}</span>` : ""}
+        <span class="badge">&ldquo;${esc(D.phrases[r.ph])}&rdquo;</span>
+        <span class="badge">${esc(titleCase(r.ct || "&mdash;"))}${r.st ? ", " + esc(D.states[r.st].toUpperCase().slice(0,14)) : ""}</span>
+        <span class="badge conf">${(r.cf / 100).toFixed(2)}</span>
+        <span class="mark">
+          <button data-k="keep" data-u="${esc(r.u)}" class="${s === "keep" ? "on-keep" : ""}">Keep</button>
+          <button data-k="drop" data-u="${esc(r.u)}" class="${s === "drop" ? "on-drop" : ""}">Toss</button>
+        </span>
+      </div>
+    </article>`;
+  }).join("");
+  $("wall").innerHTML = rows + (view.length > WALL_CAP
+    ? `<div style="padding:14px 17px;color:var(--ink3);font-size:13px">Showing the first ${WALL_CAP} of ${fmt(view.length)}. Narrow the filters to see the rest.</div>`
+    : view.length ? "" : `<div style="padding:22px 17px;color:var(--ink3)">Nothing matches. Lower the confidence threshold or clear a filter.</div>`);
+}
+let picked = -1;
+$("wall").addEventListener("click", e => {
+  const mk = e.target.closest(".mark button");
+  if (mk){
+    const u = mk.dataset.u, k = mk.dataset.k;
+    screened[u] = screened[u] === k ? undefined : k;
+    if (!screened[u]) delete screened[u];
+    saveScreen(); refresh(); e.stopPropagation(); return;
+  }
+  const art = e.target.closest(".clip");
+  if (art){ picked = +art.dataset.i; renderDetail(); renderWall(); }
+});
+
+function renderDetail(){
+  if (picked < 0) return;
+  const r = R[picked];
+  $("detailBody").innerHTML =
+    `<div class="dpaper">${esc(titleCase(D.papers[r.pa] || "Unidentified paper"))}</div>
+     <div class="dline">${esc(r.d)} &middot; ${esc(titleCase(r.ct || "place not recorded"))}${r.st ? ", " + esc(titleCase(D.states[r.st])) : ""}
+       ${r.pg ? " &middot; page " + esc(r.pg) : ""}</div>
+     <div class="dline" style="margin-top:8px">
+       Found by searching <b>&ldquo;${esc(D.phrases[r.ph])}&rdquo;</b>${r.an ? `, so the animal is <b>${esc(D.animals[r.an])}</b>` : ""}.
+       Phrase specificity <b>${(r.cf/100).toFixed(2)}</b>.
+     </div>
+     <div style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);margin-top:14px">A sample of this page&rsquo;s OCR &mdash; probably not the story</div>
+     <div class="docr">${r.tx}</div>
+     <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+       <a href="${esc(r.u)}" target="_blank" rel="noopener noreferrer">Read the scanned page at the Library of Congress &#8599;</a>
+     </div>
+     <p style="font-size:12.5px;color:var(--ink3);margin-top:12px;line-height:1.5">
+       The archive returns a fixed sample of each page&rsquo;s OCR rather than the matching passage, and a broadsheet page holds a great deal of text. About <b>96%</b> of the time the words above are <i>not</i> the escape story &mdash; they are whatever else was printed that day. The search still guarantees the phrase is on this page. <b>Open the scan to find it.</b></p>`;
+}
+
+/* ── charts ──────────────────────────────────────── */
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function fit(cv){
+  const r = cv.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+  cv.width = Math.max(1, Math.round(r.width * d)); cv.height = Math.max(1, Math.round(r.height * d));
+  const g = cv.getContext("2d"); g.setTransform(d, 0, 0, d, 0, 0);
+  return { g, w: r.width, h: r.height };
+}
+function drawTimeline(){
+  const cv = $("timeline"); if (!cv) return;
+  const { g, w, h } = fit(cv);
+  g.clearRect(0, 0, w, h);
+  const years = new Map();
+  for (const i of view){ const y = +R[i].d.slice(0,4); if (y > 1700) years.set(y, (years.get(y)||0)+1); }
+  if (!years.size){ g.fillStyle = cssv("--ink3"); g.font = '13px "Source Serif 4", serif'; g.textAlign = "center";
+    g.fillText("Nothing in the current selection.", w/2, h/2); return; }
+  const P = { l: 40, r: 14, t: 16, b: 26 }, pw = w-P.l-P.r, ph = h-P.t-P.b;
+  const y0 = D.yearMin, y1 = D.yearMax, mx = Math.max(...years.values());
+  const X = y => P.l + (y-y0)/(y1-y0+1)*pw, bw = Math.max(1.5, pw/(y1-y0+1) - 1);
+  g.font = '11px "Source Serif 4", serif'; g.textBaseline = "middle";
+  for (let t = 0; t <= 3; t++){
+    const v = Math.round(mx*t/3), y = Math.round(P.t+ph - (v/mx)*ph) + .5;
+    g.strokeStyle = cssv("--rule2"); g.beginPath(); g.moveTo(P.l, y); g.lineTo(w-P.r, y); g.stroke();
+    g.fillStyle = cssv("--ink3"); g.textAlign = "right"; g.fillText(v, P.l-7, y);
+  }
+  g.fillStyle = cssv("--stamp");
+  for (const [y, n] of years){ const bh = n/mx*ph; g.fillRect(X(y), P.t+ph-bh, bw, Math.max(1, bh)); }
+  g.textAlign = "center"; g.fillStyle = cssv("--ink3");
+  const step = (y1-y0) > 70 ? 20 : 10;
+  for (let y = Math.ceil(y0/step)*step; y <= y1; y += step) g.fillText(y, X(y)+bw/2, h-P.b+13);
+}
+function bars(host, counts, names, set){
+  const rows = [...counts.entries()].filter(([k]) => k !== 0 && k != null)
+    .sort((a,b) => b[1]-a[1]).slice(0, 12);
+  const mx = rows.length ? rows[0][1] : 1;
+  $(host).innerHTML = rows.map(([k, n]) =>
+    `<button class="bar" data-k="${k}" aria-pressed="${set.has(k)}">
+       <span class="bg" style="width:${Math.max(3, 100*n/mx).toFixed(1)}%"></span>
+       <span class="in"><span>${esc(titleCase(names[k] || k))}</span><span class="n">${fmt(n)}</span></span>
+     </button>`).join("") || `<p class="empty">Nothing here.</p>`;
+  $(host).querySelectorAll(".bar").forEach(b => b.onclick = () => {
+    const k = isNaN(+b.dataset.k) ? b.dataset.k : +b.dataset.k;
+    set.has(k) ? set.delete(k) : set.add(k); refresh();
+  });
+}
+
+function renderFinding(){
+  const ph = new Map(), st = new Map();
+  for (const i of view){ const r = R[i]; ph.set(r.ph, (ph.get(r.ph)||0)+1); if (r.st) st.set(r.st, (st.get(r.st)||0)+1); }
+  const topPh = [...ph.entries()].sort((a,b)=>b[1]-a[1])[0];
+  const topSt = [...st.entries()].sort((a,b)=>b[1]-a[1])[0];
+  if (!topPh){ $("findHl").textContent = "Nothing to summarise."; $("findBody").textContent = "Widen the selection."; $("findCaveat").textContent=""; return; }
+  const yrs = new Map();
+  for (const i of view){ const y = Math.floor(+R[i].d.slice(0,4)/10)*10; yrs.set(y, (yrs.get(y)||0)+1); }
+  const topDec = [...yrs.entries()].sort((a,b)=>b[1]-a[1])[0];
+  $("findHl").innerHTML = `The phrase peaks in the <b style="color:var(--stamp)">${topDec[0]}s</b>.`;
+  $("findBody").innerHTML =
+    `<b>${fmt(view.length)}</b> pages in this selection, across <b>${fmt(new Set(view.map(i=>R[i].pa)).size)}</b> newspapers in <b>${fmt(st.size)}</b> states. ` +
+    `The commonest phrasing is &ldquo;<b>${esc(D.phrases[topPh[0]])}</b>&rdquo; (${fmt(topPh[1])} pages)` +
+    (topSt ? `, and the state that printed it most is <b>${esc(titleCase(D.states[topSt[0]]))}</b> (${fmt(topSt[1])}).` : ".") +
+    ` The ${topDec[0]}s alone account for ${fmt(topDec[1])}.`;
+  $("findCaveat").innerHTML =
+    `That peak is a fact about <i>digitisation</i> as much as about animals: Chronicling America holds far more pages from some decades and some states than others, so a tall bar can mean a busy year for lions or simply a well-scanned one.`;
+}
+
+/* ── methods ─────────────────────────────────────── */
+$("mbody").innerHTML = `
+<section class="mblk"><h3>The source</h3>
+<p><b>Chronicling America</b>, the Library of Congress's archive of digitised American newspapers, queried through the loc.gov collection endpoint:</p>
+<p><code>https://www.loc.gov/collections/chronicling-america/?q=&lt;phrase&gt;&amp;fo=json</code></p>
+<p>Each hit is one <em>newspaper page</em> whose OCR text contains the phrase. The record carries the date, the paper, its city and state, an OCR excerpt around the match, and a link to the scanned page with the term highlighted. Retrieved ${D.built}; nothing is fetched while you read this.</p></section>
+
+<section class="mblk"><h3>The searches</h3>
+<p>${D.phrases.length} phrasings were run, chosen to catch how papers of the period actually wrote about this &mdash; not just <code>"escaped from the zoo"</code> but <code>"escaped from the menagerie"</code>, <code>"lion at large"</code>, <code>"broke loose from the zoo"</code> and so on. Results were de-duplicated by page, leaving <b>${fmt(N)}</b> pages.</p>
+<p>This is a net, not a census. Papers that were never digitised are invisible here, and the archive's coverage is uneven by state and by decade.</p></section>
+
+<section class="mblk"><h3>What went wrong, and what it changed</h3>
+<p>The plan was to mine the OCR: read the animal out of each clipping, read whether it was recaptured or shot, and score how likely each hit was to be a real escape.</p>
+<p>That plan died on contact with the data. The archive's search record returns a <b>fixed ~1,000-character sample of the page's OCR, not the passage that matched</b>. Measured across the whole harvest, only about <b>4%</b> of excerpts contain the phrase that found them. A broadsheet page holds tens of thousands of words; the sample is usually a seed catalogue or a shipping notice.</p>
+<p>So nothing on this page is inferred from that text. <b>The animal and the specificity score come from the search phrase</b>, which the archive does guarantee appears on the page. Searching <code>"escaped lion"</code> and getting a hit is evidence about a lion; the excerpt underneath it is not.</p></section>
+
+<section class="mblk"><h3>The specificity score</h3>
+<p>Each phrase is scored 0&ndash;1 by hand for how strongly it implies a captive animal got out. <code>"escaped from the zoo"</code> scores 0.96; <code>"bear at large"</code> scores 0.22, because most bears at large in an American newspaper are simply bears. The slider filters on that score.</p>
+<p>It is a judgement about <i>language</i>, not a measurement of each page. Two pages found by the same phrase always score the same, and one of them may still be a poem.</p></section>
+
+<section class="mblk"><h3>Why screening is a control, not a footnote</h3>
+<p>This is the shape of a real evidence review: a broad search returns far more than you want, and a human decides what counts. The Keep and Toss buttons are that step. Your decisions stay in your browser &mdash; nothing is uploaded, and the tally at the top is yours alone.</p>
+<p>Clear them any time with the button in the masthead.</p></section>
+
+<section class="mblk"><h3>Where this should not be pushed</h3>
+<ul>
+<li><b>This measures newspaper coverage, not escapes.</b> The peak years are the years with the most digitised pages, not necessarily the most animals on the loose.</li>
+<li><b>The OCR is bad, and visibly so.</b> These are machine readings of scans of microfilm of newsprint. Words dissolve. A clipping that says nothing sensible is usually a scanning artefact, not a strange story.</li>
+<li><b>Circus and menagerie escapes are in here too.</b> A travelling menagerie is not a zoo, but the papers used the words interchangeably and so, largely, does this.</li>
+<li><b>Location is where the paper was published</b>, not where the animal was. A Kansas paper reprinting a Bronx Zoo story counts as Kansas.</li>
+<li><b>Outcome is read from words, and words are slippery.</b> &ldquo;Killed&rdquo; may refer to the animal, to a person, or to neither.</li>
+</ul></section>
+
+<section class="mblk"><h3>Built</h3>
+<p>${fmt(N)} pages from ${fmt(D.papers.length)} newspapers across ${fmt(D.states.length)} states, ${D.yearMin}&ndash;${D.yearMax}. Every count, chart and percentage on this page is recomputed in your browser from the records shipped with it, and responds to the threshold and the filters.</p></section>`;
+
+$("foot").innerHTML =
+  `At Large &middot; Chronicling America, Library of Congress &middot; ${fmt(N)} newspaper pages from ${D.phrases.length} full-text searches &middot; retrieved ${D.built}<br>` +
+  `Newspaper scans and OCR are US Library of Congress public domain. Screening decisions stay in your browser.`;
+
+/* ── wiring ──────────────────────────────────────── */
+let qT = null;
+$("q").oninput = e => { clearTimeout(qT); qT = setTimeout(() => { F.q = e.target.value.trim(); refresh(); }, 200); };
+$("conf").oninput = e => { F.conf = +e.target.value; $("confv").textContent = "≥ " + (F.conf/100).toFixed(2); refresh(); };
+$("resetBtn").onclick = () => {
+  F.q = ""; F.conf = 40; $("q").value = ""; $("conf").value = 40;
+  $("confv").textContent = "≥ 0.40";
+  ["animal","phrase","decade","state","screen"].forEach(k => F[k].clear());
+  picked = -1; $("detailBody").innerHTML = '<p class="empty">Pick a clipping to read the OCR as the machine read it, and to open the scanned page at the Library of Congress.</p>';
+  refresh();
+};
+$("clearScreen").onclick = () => { screened = {}; saveScreen(); refresh(); };
+addEventListener("resize", drawTimeline);
+new MutationObserver(drawTimeline).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawTimeline);
+
+function refresh(){
+  applyFilters();
+  const ac = countBy(r => r.an), oc = countBy(r => r.ph), dc = countBy(r => Math.floor(+r.d.slice(0,4)/10)*10);
+  chipHost("animalChips", [...ac.entries()].filter(([k])=>k).sort((a,b)=>b[1]-a[1]).slice(0,14)
+    .map(([k,n]) => [k, titleCase(D.animals[k]), n]), F.animal);
+  chipHost("outcomeChips", [...oc.entries()].sort((a,b)=>b[1]-a[1])
+    .map(([k,n]) => [k, D.phrases[k], n]), F.phrase);
+  chipHost("decadeChips", [...dc.entries()].sort((a,b)=>a[0]-b[0])
+    .map(([k,n]) => [k, k + "s", n]), F.decade);
+  chipHost("screenChips", [["keep","Kept"],["drop","Tossed"],["none","Unscreened"]], F.screen);
+  renderTally(); renderWall(); renderFinding();
+  bars("animalBars", countByView(r => r.an), D.animals, F.animal);
+  bars("stateBars", countByView(r => r.st), D.states, F.state);
+  requestAnimationFrame(drawTimeline);
+}
+function countByView(keyFn){
+  const c = new Map();
+  for (const i of view){ const k = keyFn(R[i]); c.set(k, (c.get(k)||0)+1); }
+  return c;
+}
+
+$("rl2").textContent = D.yearMin + "\u2013" + D.yearMax;
+let saved = "auto"; try{ saved = store.get("theme", "auto"); }catch(e){}
+setTheme(saved);
+refresh();
+</script>

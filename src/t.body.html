@@ -1,0 +1,86 @@
+<div class="app">
+
+<header class="plate">
+  <div class="rulerow">
+    <span id="rl1">Chronicling America &middot; Library of Congress</span>
+    <span id="rl2">&mdash;</span>
+    <span id="rl3">Full-text search over digitised American newspapers</span>
+  </div>
+  <h1 class="t">At Large</h1>
+  <p class="sub">There is no dataset of animals escaping from zoos. There is, however, a century of American newspapers that has been scanned, run through OCR, and made searchable &mdash; so this builds one out of that, the way you would build any evidence review: cast a wide net, then screen what comes back.</p>
+  <div class="tools">
+    <div class="seg3" id="themeSeg">
+      <button data-t="auto">Auto</button><button data-t="light">Light</button><button data-t="dark">Dark</button>
+    </div>
+    <button id="resetBtn">Reset filters</button>
+    <button id="clearScreen">Clear my screening</button>
+  </div>
+</header>
+
+<div class="tally" id="tally"></div>
+
+<div class="bench">
+  <div class="pane" id="rail">
+    <h3>Search the OCR</h3>
+    <input class="srch" id="q" type="search" placeholder="lion, Bronx, recaptured&hellip;" autocomplete="off">
+
+    <h3>How specific the phrase is</h3>
+    <input class="slider" id="conf" type="range" min="0" max="100" value="40" step="5">
+    <div class="sliderval"><span id="confv">&ge; 0.40</span><span id="confn">&mdash;</span></div>
+    <p style="font-size:12.5px;color:var(--ink3);margin:8px 0 0;line-height:1.45">Every phrase carries a score for how strongly it implies a captive animal got out. &ldquo;Escaped from the zoo&rdquo; is near-certain; &ldquo;bear at large&rdquo; is usually just a bear. Drag right to keep only the unambiguous ones.</p>
+
+    <h3>Animal</h3>
+    <div class="chips" id="animalChips"></div>
+
+    <h3>Search phrase</h3>
+    <div class="chips" id="outcomeChips"></div>
+
+    <h3>Decade</h3>
+    <div class="chips" id="decadeChips"></div>
+
+    <h3>My screening</h3>
+    <div class="chips" id="screenChips"></div>
+  </div>
+
+  <div class="wall" id="wall"></div>
+
+  <div class="pane" id="detail">
+    <h3>The clipping</h3>
+    <div id="detailBody"><p class="empty">Pick a page to see what the archive returns for it &mdash; and to open the scan at the Library of Congress, where the phrase is highlighted for you.</p></div>
+  </div>
+</div>
+
+<section class="blk">
+  <h2 class="sec">When</h2>
+  <p class="sublede">Reports per year across the filtered set. This is a record of <em>newspaper coverage</em>, not of escapes &mdash; the shape is set as much by which papers were digitised as by which animals got out.</p>
+  <canvas class="chart" id="timeline"></canvas>
+</section>
+
+<section class="blk">
+  <h2 class="sec">What, and where</h2>
+  <div class="two">
+    <div>
+      <h3 style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink3);font-weight:400;margin-bottom:6px">Animal named in the search phrase</h3>
+      <div class="barlist" id="animalBars"></div>
+      <h3 style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink3);font-weight:400;margin:20px 0 6px">Where the paper was published</h3>
+      <div class="barlist" id="stateBars"></div>
+    </div>
+    <div class="finding">
+      <div class="hl" id="findHl">&mdash;</div>
+      <p id="findBody">&mdash;</p>
+      <p id="findCaveat" style="font-size:13px;color:var(--ink3);margin-top:14px"></p>
+    </div>
+  </div>
+</section>
+
+<section class="blk">
+  <h2 class="sec">How this was made</h2>
+  <p class="sublede">The searching, the screening, and every place these numbers should be distrusted.</p>
+  <details class="methods" open>
+    <summary>Methods, sources &amp; limitations</summary>
+    <div class="mbody" id="mbody"></div>
+  </details>
+</section>
+
+<footer id="foot"></footer>
+</div>
